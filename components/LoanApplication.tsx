@@ -174,7 +174,7 @@ const SignaturePad: React.FC<{ onSign: (signature: string | null) => void }> = (
 
 const LoanApplication: React.FC<LoanApplicationProps> = ({ user, loans, systemBudget, isGlobalProcessing, onApplyLoan, onSettleLoan, onPayOSPayment, onBack, initialLoanToSettle, initialLoanToView, settings }) => {
   const [step, setStep] = useState<LoanStep>(initialLoanToSettle ? LoanStep.SETTLE_DETAIL : LoanStep.LIST);
-  const [selectedAmount, setSelectedAmount] = useState<number>(1000000);
+  const [selectedAmount, setSelectedAmount] = useState<number>(Number(settings.MIN_LOAN_AMOUNT || 1000000));
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [selectedContract, setSelectedContract] = useState<LoanRecord | null>(initialLoanToView || null);
   const [settleType, setSettleType] = useState<'ALL' | 'PRINCIPAL' | 'PARTIAL'>('ALL');
@@ -374,7 +374,8 @@ const LoanApplication: React.FC<LoanApplicationProps> = ({ user, loans, systemBu
             onClick={() => {
               const maxLoanPerCycle = Number(settings.MAX_LOAN_PER_CYCLE || 10000000);
               const maxPossible = Math.min(maxLoanPerCycle - currentCycleTotal, actualMaxAllowed);
-              setSelectedAmount(Math.min(1000000, maxPossible));
+              const minAmount = Number(settings.MIN_LOAN_AMOUNT || 1000000);
+              setSelectedAmount(Math.min(minAmount, maxPossible));
               setStep(LoanStep.SELECT_AMOUNT);
             }}
             className={`font-black px-4 py-1.5 rounded-full text-[8px] tracking-widest transition-all shadow-lg ${
@@ -700,8 +701,8 @@ const LoanApplication: React.FC<LoanApplicationProps> = ({ user, loans, systemBu
               <div className="relative pt-4 pb-1">
                 <input
                   type="range"
-                  min="1000000"
-                  max={Math.min(Number(settings.MAX_LOAN_PER_CYCLE || 10000000) - currentCycleTotal, actualMaxAllowed)}
+                  min={Number(settings.MIN_LOAN_AMOUNT || 1000000)}
+                  max={Math.max(Number(settings.MIN_LOAN_AMOUNT || 1000000), Math.min(Number(settings.MAX_LOAN_PER_CYCLE || 10000000) - currentCycleTotal, actualMaxAllowed))}
                   step="1000000"
                   value={selectedAmount}
                   onChange={handleSliderChange}
@@ -710,7 +711,7 @@ const LoanApplication: React.FC<LoanApplicationProps> = ({ user, loans, systemBu
                 <div className="flex justify-between mt-6">
                   <div className="flex flex-col items-start gap-1">
                     <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Tối thiểu</span>
-                    <span className="text-[11px] font-black text-white">1.000.000 đ</span>
+                    <span className="text-[11px] font-black text-white">{Number(settings.MIN_LOAN_AMOUNT || 1000000).toLocaleString()} đ</span>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className={`text-[9px] font-black uppercase tracking-widest ${isLimitedByBudget ? 'text-red-500' : 'text-orange-500/50'}`}>
@@ -760,13 +761,13 @@ const LoanApplication: React.FC<LoanApplicationProps> = ({ user, loans, systemBu
 
         <div className="sticky bottom-0 left-0 right-0 p-3 bg-black flex gap-2 z-[110] border-t border-white/5 mt-auto">
           <button
-            disabled={actualMaxAllowed < 1000000}
+            disabled={actualMaxAllowed < Number(settings.MIN_LOAN_AMOUNT || 1000000)}
             onClick={() => { setStep(LoanStep.CONTRACT); setSignatureData(null); }}
             className={`w-full font-black py-4 rounded-xl text-[10px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all ${
-              actualMaxAllowed < 1000000 ? 'bg-white/5 text-gray-600 cursor-not-allowed opacity-50' : 'bg-[#ff8c00] text-black shadow-orange-950/20'
+              actualMaxAllowed < Number(settings.MIN_LOAN_AMOUNT || 1000000) ? 'bg-white/5 text-gray-600 cursor-not-allowed opacity-50' : 'bg-[#ff8c00] text-black shadow-orange-950/20'
             }`}
           >
-            {actualMaxAllowed < 1000000 ? 'KHÔNG ĐỦ NGÂN SÁCH' : 'TIẾP TỤC ĐẾN HỢP ĐỒNG'}
+            {actualMaxAllowed < Number(settings.MIN_LOAN_AMOUNT || 1000000) ? 'KHÔNG ĐỦ NGÂN SÁCH' : 'TIẾP TỤC ĐẾN HỢP ĐỒNG'}
           </button>
         </div>
       </div>

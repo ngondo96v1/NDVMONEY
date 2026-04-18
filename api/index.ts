@@ -35,7 +35,7 @@ const saveConfig = (newConfig: any) => {
     const updatedConfig = { ...currentConfig, ...newConfig };
 
     // Parse numeric fields if they are present and not empty
-    const numericFields = ['PRE_DISBURSEMENT_FEE', 'MAX_EXTENSIONS', 'UPGRADE_PERCENT', 'FINE_RATE', 'MAX_FINE_PERCENT', 'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT'];
+    const numericFields = ['PRE_DISBURSEMENT_FEE', 'MAX_EXTENSIONS', 'UPGRADE_PERCENT', 'FINE_RATE', 'MAX_FINE_PERCENT', 'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT', 'MIN_LOAN_AMOUNT'];
     numericFields.forEach(field => {
       if (updatedConfig[field] !== undefined && updatedConfig[field] !== '') {
         const val = Number(updatedConfig[field]);
@@ -101,7 +101,7 @@ const loadSystemSettings = async (client: any) => {
       const systemKeys = [
         'PAYMENT_ACCOUNT', 'PRE_DISBURSEMENT_FEE', 'MAX_EXTENSIONS', 
         'UPGRADE_PERCENT', 'FINE_RATE', 'MAX_FINE_PERCENT', 
-        'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT', 'INITIAL_LIMIT',
+        'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT', 'INITIAL_LIMIT', 'MIN_LOAN_AMOUNT',
         'IMGBB_API_KEY', 'PAYOS_CLIENT_ID', 'PAYOS_API_KEY', 'PAYOS_CHECKSUM_KEY',
         'APP_URL', 'JWT_SECRET', 'ADMIN_PHONE', 'ADMIN_PASSWORD',
         'CONTRACT_CODE_FORMAT', 'USER_ID_FORMAT', 'ZALO_GROUP_LINK',
@@ -119,7 +119,7 @@ const loadSystemSettings = async (client: any) => {
           } catch (e) {
             settings[item.key] = item.value;
           }
-        } else if (['SYSTEM_BUDGET', 'TOTAL_LOAN_PROFIT', 'TOTAL_RANK_PROFIT', 'UPGRADE_PERCENT', 'PRE_DISBURSEMENT_FEE', 'MAX_EXTENSIONS', 'FINE_RATE', 'MAX_FINE_PERCENT', 'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT', 'INITIAL_LIMIT', 'LUCKY_SPIN_WIN_RATE', 'LUCKY_SPIN_PAYMENTS_REQUIRED', 'MAX_ON_TIME_PAYMENTS_FOR_UPGRADE'].includes(item.key)) {
+        } else if (['SYSTEM_BUDGET', 'TOTAL_LOAN_PROFIT', 'TOTAL_RANK_PROFIT', 'UPGRADE_PERCENT', 'PRE_DISBURSEMENT_FEE', 'MAX_EXTENSIONS', 'FINE_RATE', 'MAX_FINE_PERCENT', 'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT', 'INITIAL_LIMIT', 'MIN_LOAN_AMOUNT', 'LUCKY_SPIN_WIN_RATE', 'LUCKY_SPIN_PAYMENTS_REQUIRED', 'MAX_ON_TIME_PAYMENTS_FOR_UPGRADE'].includes(item.key)) {
           settings[item.key] = Number(item.value);
         } else if (['ENABLE_PAYOS', 'ENABLE_VIETQR', 'SHOW_SYSTEM_NOTIFICATION'].includes(item.key)) {
           settings[item.key] = item.value === true || item.value === 'true';
@@ -156,6 +156,7 @@ const getMergedSettings = async (client: any) => {
     MAX_LOAN_PER_CYCLE: Number(dbSettings.MAX_LOAN_PER_CYCLE !== undefined ? dbSettings.MAX_LOAN_PER_CYCLE : (config.MAX_LOAN_PER_CYCLE !== undefined ? config.MAX_LOAN_PER_CYCLE : 10000000)),
     MIN_SYSTEM_BUDGET: Number(dbSettings.MIN_SYSTEM_BUDGET !== undefined ? dbSettings.MIN_SYSTEM_BUDGET : (config.MIN_SYSTEM_BUDGET !== undefined ? config.MIN_SYSTEM_BUDGET : 1000000)),
     MAX_SINGLE_LOAN_AMOUNT: Number(dbSettings.MAX_SINGLE_LOAN_AMOUNT !== undefined ? dbSettings.MAX_SINGLE_LOAN_AMOUNT : (config.MAX_SINGLE_LOAN_AMOUNT !== undefined ? config.MAX_SINGLE_LOAN_AMOUNT : 10000000)),
+    MIN_LOAN_AMOUNT: Number(dbSettings.MIN_LOAN_AMOUNT !== undefined ? dbSettings.MIN_LOAN_AMOUNT : (config.MIN_LOAN_AMOUNT !== undefined ? config.MIN_LOAN_AMOUNT : 1000000)),
     PAYOS_CLIENT_ID: dbSettings.PAYOS_CLIENT_ID || config.PAYOS_CLIENT_ID || process.env.PAYOS_CLIENT_ID || "",
     PAYOS_API_KEY: dbSettings.PAYOS_API_KEY || config.PAYOS_API_KEY || process.env.PAYOS_API_KEY || "",
     PAYOS_CHECKSUM_KEY: dbSettings.PAYOS_CHECKSUM_KEY || config.PAYOS_CHECKSUM_KEY || process.env.PAYOS_CHECKSUM_KEY || "",
@@ -801,7 +802,7 @@ router.post("/settings", async (req: any, res) => {
   const systemKeys = [
     'PAYMENT_ACCOUNT', 'PRE_DISBURSEMENT_FEE', 'MAX_EXTENSIONS', 
     'UPGRADE_PERCENT', 'FINE_RATE', 'MAX_FINE_PERCENT', 
-    'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT', 'INITIAL_LIMIT',
+    'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT', 'INITIAL_LIMIT', 'MIN_LOAN_AMOUNT',
     'IMGBB_API_KEY', 'PAYOS_CLIENT_ID', 'PAYOS_API_KEY', 'PAYOS_CHECKSUM_KEY',
     'APP_URL', 'JWT_SECRET', 'ADMIN_PHONE', 'ADMIN_PASSWORD',
     'PAYMENT_CONTENT_FULL_SETTLEMENT', 'PAYMENT_CONTENT_PARTIAL_SETTLEMENT',
@@ -1703,11 +1704,22 @@ router.post("/loans", async (req: any, res) => {
       return res.status(400).json({ error: "Không có dữ liệu hợp lệ để lưu" });
     }
 
-    // Budget check for new loans (if not admin)
+    // Budget & Min Amount check for new loans (if not admin)
     if (!req.user?.isAdmin) {
-      const isNewLoan = sanitizedLoans.some(l => l.status === 'CHỜ DUYỆT');
-      if (isNewLoan) {
+      const newLoan = sanitizedLoans.find(l => l.status === 'CHỜ DUYỆT');
+      if (newLoan) {
         const settings = await getMergedSettings(client);
+        
+        // Check Min Amount
+        const minAmount = Number(settings.MIN_LOAN_AMOUNT || 1000000);
+        if (newLoan.amount < minAmount) {
+          return res.status(400).json({ 
+            error: "Số tiền không hợp lệ", 
+            message: `Số tiền vay tối thiểu là ${minAmount.toLocaleString()} đ.` 
+          });
+        }
+
+        // Check System Budget
         const minBudget = Number(settings.MIN_SYSTEM_BUDGET || 1000000);
         const currentBudget = Number(settings.SYSTEM_BUDGET || 0);
         
@@ -1763,11 +1775,17 @@ router.post("/loans", async (req: any, res) => {
       sanitizedLoans.forEach(l => {
         io.to(`user_${l.userId}`).emit("loan_updated", l);
         
-        // Notify admin of new loan requests
+        // Notify admin of new loan requests or settlement requests
         if (l.status === 'CHỜ DUYỆT') {
           io.to("admin").emit("admin_notification", {
             type: "NEW_LOAN",
             message: `Có yêu cầu vay mới (${l.amount.toLocaleString()} đ) từ người dùng ${l.userName || l.userId}.`
+          });
+        } else if (l.status === 'CHỜ TẤT TOÁN') {
+          const typeLabel = l.settlementType === 'PRINCIPAL' ? 'gia hạn' : (l.settlementType === 'PARTIAL' ? 'TTMP' : 'tất toán');
+          io.to("admin").emit("admin_notification", {
+            type: "PAYMENT",
+            message: `Người dùng ${l.userName || l.userId} vừa gửi yêu cầu ${typeLabel} khoản vay (${l.amount.toLocaleString()} đ).`
           });
         }
       });
@@ -2710,6 +2728,19 @@ router.post("/payment/webhook", async (req, res) => {
               { key: 'MONTHLY_STATS', value: JSON.stringify(newMonthlyStats) }
             ], { onConflict: 'key' });
 
+            // Create Budget Log for Loan Settlement
+            const budgetLogId = `BL${Date.now()}`;
+            const settleLabelShort = settleType === 'ALL' ? 'Tất toán' : (settleType === 'PARTIAL' ? 'TTMP' : 'Gia hạn');
+            const budgetLog = {
+              id: budgetLogId,
+              type: 'LOAN_REPAY',
+              amount: budgetUpdate,
+              balanceAfter: newBudget,
+              note: `[Tự động] PayOS: ${settleLabelShort} khoản vay ${loanId} từ ${user.fullName || user.phone}`,
+              createdAt: new Date().toISOString()
+            };
+            await client.from('budget_logs').insert([budgetLog]);
+
             // Handle different settlement types
             let nextLoan: any = null;
             
@@ -2932,6 +2963,18 @@ router.post("/payment/webhook", async (req, res) => {
               { key: 'TOTAL_RANK_PROFIT', value: newRankProfit.toString() },
               { key: 'MONTHLY_STATS', value: JSON.stringify(newMonthlyStats) }
             ], { onConflict: 'key' });
+
+            // Create Budget Log for Rank Upgrade
+            const budgetLogId = `BL${Date.now()}`;
+            const budgetLog = {
+              id: budgetLogId,
+              type: 'ADD',
+              amount: upgradeFee,
+              balanceAfter: newBudget,
+              note: `[Tự động] PayOS: Nâng hạng ${targetRank.toUpperCase()} cho ${user.fullName || user.phone}`,
+              createdAt: new Date().toISOString()
+            };
+            await client.from('budget_logs').insert([budgetLog]);
               
             const io = req.app.get("io");
             if (io) {

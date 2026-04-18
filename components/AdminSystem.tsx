@@ -361,6 +361,7 @@ END $$;`;
     MAX_LOAN_PER_CYCLE: '10000000',
     MIN_SYSTEM_BUDGET: '1000000',
     MAX_SINGLE_LOAN_AMOUNT: '10000000',
+    MIN_LOAN_AMOUNT: '1000000',
     PAYOS_CLIENT_ID: '',
     PAYOS_API_KEY: '',
     PAYOS_CHECKSUM_KEY: '',
@@ -504,6 +505,7 @@ END $$;`;
         UPGRADE_PERCENT: 10,
         FINE_RATE: '0.5',
         MAX_SINGLE_LOAN_AMOUNT: 50000000,
+        MIN_LOAN_AMOUNT: 1000000,
         MAX_EXTENSIONS: 3,
         MAX_FINE_PERCENT: 50,
         MAX_LOAN_PER_CYCLE: 50000000,
@@ -529,7 +531,7 @@ END $$;`;
         'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'IMGBB_API_KEY', 'PAYMENT_ACCOUNT',
         'PRE_DISBURSEMENT_FEE', 'MAX_EXTENSIONS', 'UPGRADE_PERCENT', 'ENABLE_PAYOS',
         'ENABLE_VIETQR', 'FINE_RATE', 'MAX_FINE_PERCENT', 'MAX_LOAN_PER_CYCLE',
-        'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT', 'INITIAL_LIMIT', 'PAYOS_CLIENT_ID', 'PAYOS_API_KEY',
+        'MIN_SYSTEM_BUDGET', 'MAX_SINGLE_LOAN_AMOUNT', 'INITIAL_LIMIT', 'MIN_LOAN_AMOUNT', 'PAYOS_CLIENT_ID', 'PAYOS_API_KEY',
         'PAYOS_CHECKSUM_KEY', 'JWT_SECRET', 'ADMIN_PHONE', 'ADMIN_PASSWORD',
         'ZALO_GROUP_LINK', 'SYSTEM_NOTIFICATION', 'SHOW_SYSTEM_NOTIFICATION',
         'LUCKY_SPIN_PAYMENTS_REQUIRED', 'LUCKY_SPIN_VOUCHERS', 'LUCKY_SPIN_WIN_RATE',
@@ -2676,6 +2678,17 @@ END $$;`;
                       />
                     </div>
                     <div className="space-y-1.5">
+                      <label className="text-[7px] font-black text-gray-500 uppercase tracking-widest px-1">SỐ TIỀN VAY TỐI THIỂU</label>
+                      <input 
+                        type="text" 
+                        inputMode="numeric"
+                        value={formatNumberWithDots(localSettings.MIN_LOAN_AMOUNT)}
+                        placeholder={formatNumberWithDots(defaultSettings.MIN_LOAN_AMOUNT)}
+                        onChange={(e) => setLocalSettings({...localSettings, MIN_LOAN_AMOUNT: parseNumberFromDots(e.target.value)})}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[10px] font-bold text-white outline-none focus:border-[#ff8c00]"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
                       <label className="text-[7px] font-black text-gray-500 uppercase tracking-widest px-1">SỐ LẦN GIA HẠN TỐI ĐA</label>
                       <input 
                         type="text" 
@@ -2863,7 +2876,7 @@ END $$;`;
                   </div>
 
                   <button 
-                    onClick={() => handleSaveSettings(['PRE_DISBURSEMENT_FEE', 'UPGRADE_PERCENT', 'FINE_RATE', 'MAX_SINGLE_LOAN_AMOUNT', 'RANK_CONFIG', 'MAX_EXTENSIONS', 'MAX_FINE_PERCENT', 'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_ON_TIME_PAYMENTS_FOR_UPGRADE'])}
+                    onClick={() => handleSaveSettings(['PRE_DISBURSEMENT_FEE', 'UPGRADE_PERCENT', 'FINE_RATE', 'MAX_SINGLE_LOAN_AMOUNT', 'MIN_LOAN_AMOUNT', 'RANK_CONFIG', 'MAX_EXTENSIONS', 'MAX_FINE_PERCENT', 'MAX_LOAN_PER_CYCLE', 'MIN_SYSTEM_BUDGET', 'MAX_ON_TIME_PAYMENTS_FOR_UPGRADE'])}
                     disabled={isSavingSettings}
                     className="w-full bg-[#ff8c00]/10 border border-[#ff8c00]/20 hover:bg-[#ff8c00]/20 text-[#ff8c00] font-black py-3 rounded-xl text-[8px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >

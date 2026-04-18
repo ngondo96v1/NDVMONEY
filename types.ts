@@ -205,6 +205,7 @@ export interface AppSettings {
   MIN_SYSTEM_BUDGET: number | string;
   MAX_SINGLE_LOAN_AMOUNT: number | string;
   INITIAL_LIMIT: number | string;
+  MIN_LOAN_AMOUNT: number | string;
   PAYOS_CLIENT_ID?: string;
   PAYOS_API_KEY?: string;
   PAYOS_CHECKSUM_KEY?: string;
